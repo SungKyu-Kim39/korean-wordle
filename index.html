@@ -276,12 +276,6 @@
 
             const currentGuess = guesses[currentAttempt].join("");
 
-            // 3. 사전 등록 여부 확인
-            if (!dictionary.includes(currentGuess)) {
-                alert("사전에 없는 단어입니다.");
-                return;
-            }
-
             const targetArray = targetWord.split("");
             const guessArray = guesses[currentAttempt];
             let tileColors = Array(WORD_LENGTH).fill("var(--absent-bg)");
