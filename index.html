@@ -2,147 +2,189 @@
 <html lang="ko">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>오늘의 단어</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>오늘의 단어 - 한글 워들</title>
     <style>
         :root {
-            --bg-color: #1a1a1a;
-            --text-color: #ffffff;
-            --tile-bg: transparent;
+            --bg-color: #121213;
             --tile-border: #3a3a3c;
-            --key-bg: #3a3a3c;
-            --key-text: #ffffff;
-            --correct-bg: #a3e6aa; /* 초록색 */
-            --present-bg: #f5d675; /* 주황/노란색 */
-            --absent-bg: #818384;  /* 회색 */
+            --tile-empty: #121213;
+            --correct: #6aaa64; /* 초록색 */
+            --present: #c9b458; /* 주황/노란색 */
+            --absent: #3a3a3c;  /* 회색 */
+            --key-bg: #818384;
+            --text-color: #ffffff;
         }
 
         body {
             background-color: var(--bg-color);
             color: var(--text-color);
             font-family: 'Pretendard', -apple-system, sans-serif;
+            margin: 0;
             display: flex;
             flex-direction: column;
             align-items: center;
-            justify-content: space-between;
             height: 100vh;
-            margin: 0;
-            padding: 20px 0;
-            box-sizing: border-box;
+            overflow: hidden;
+            -webkit-tap-highlight-color: transparent;
         }
 
-        h1 {
-            font-size: 24px;
-            margin-bottom: 20px;
+        header {
+            width: 100%;
+            height: 60px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            border-bottom: 1px solid var(--tile-border);
+            font-weight: 800;
+            font-size: 1.4rem;
+            letter-spacing: 1px;
+        }
+
+        #game-container {
+            flex-grow: 1;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            width: 100%;
+            max-width: 500px;
         }
 
         #board {
             display: grid;
             grid-template-rows: repeat(5, 1fr);
-            gap: 10px;
-            margin-bottom: 30px;
+            gap: 8px;
+            padding: 10px;
         }
 
         .row {
             display: grid;
             grid-template-columns: repeat(5, 1fr);
-            gap: 10px;
+            gap: 8px;
         }
 
         .tile {
-            width: 50px;
-            height: 50px;
+            width: 58px;
+            height: 58px;
             border: 2px solid var(--tile-border);
-            border-radius: 8px;
             display: flex;
             justify-content: center;
             align-items: center;
-            font-size: 24px;
+            font-size: 1.8rem;
             font-weight: bold;
+            border-radius: 4px;
+            transition: transform 0.1s ease, background-color 0.4s ease;
+            user-select: none;
             text-transform: uppercase;
         }
+
+        .tile[data-state="correct"] { background-color: var(--correct); border-color: var(--correct); color: white; }
+        .tile[data-state="present"] { background-color: var(--present); border-color: var(--present); color: white; }
+        .tile[data-state="absent"] { background-color: var(--absent); border-color: var(--absent); color: white; }
+        .tile.populated { border-color: #565758; transform: scale(1.05); }
 
         #keyboard {
             width: 100%;
             max-width: 500px;
-            padding: 20px;
-            background-color: #222;
-            border-radius: 20px 20px 0 0;
+            padding: 10px;
             box-sizing: border-box;
-            display: flex;
-            flex-direction: column;
-            gap: 8px;
+            margin-bottom: 10px;
         }
 
         .keyboard-row {
             display: flex;
             justify-content: center;
-            gap: 6px;
+            margin-bottom: 8px;
+            touch-action: manipulation;
         }
 
         .key {
             background-color: var(--key-bg);
-            color: var(--key-text);
             border: none;
-            border-radius: 6px;
-            padding: 15px 10px;
-            font-size: 16px;
-            font-weight: bold;
-            cursor: pointer;
-            flex: 1;
+            border-radius: 4px;
+            margin: 0 3px;
+            padding: 0;
+            height: 58px;
+            flex-grow: 1;
             display: flex;
             justify-content: center;
             align-items: center;
-            touch-action: manipulation;
+            color: white;
+            font-weight: bold;
+            font-size: 1.1rem;
+            cursor: pointer;
+            user-select: none;
         }
 
-        .key.wide {
-            flex: 1.5;
+        .key.large { flex-grow: 1.8; font-size: 0.9rem; }
+        .key[data-state="correct"] { background-color: var(--correct); }
+        .key[data-state="present"] { background-color: var(--present); }
+        .key[data-state="absent"] { background-color: var(--absent); }
+
+        #submit-btn {
+            width: calc(100% - 20px);
+            max-width: 480px;
+            background-color: #3a3a3c;
+            color: white;
+            border: none;
+            padding: 16px;
+            border-radius: 8px;
+            font-size: 1.1rem;
+            font-weight: bold;
+            cursor: pointer;
+            margin-bottom: 30px;
+            transition: background-color 0.2s;
         }
 
-        .key.enter {
-            width: 100%;
-            margin-top: 10px;
-            padding: 15px;
-            background-color: #333;
+        #submit-btn.ready {
+            background-color: var(--correct);
         }
 
-        /* 팝업 모달 스타일 */
-        #modal {
+        /* Modal */
+        #modal-overlay {
             display: none;
             position: fixed;
             top: 0; left: 0; width: 100%; height: 100%;
-            background-color: rgba(0, 0, 0, 0.7);
+            background: rgba(0,0,0,0.85);
             justify-content: center;
             align-items: center;
+            z-index: 100;
         }
 
-        .modal-content {
-            background-color: #2a2a2a;
+        .modal {
+            background: #1a1a1b;
             padding: 30px;
-            border-radius: 12px;
+            border-radius: 16px;
             text-align: center;
+            border: 1px solid var(--tile-border);
+            width: 80%;
+            max-width: 320px;
+            box-shadow: 0 4px 23px 0 rgba(0,0,0,0.2);
         }
 
-        .modal-content h2 { margin-top: 0; }
-        .modal-content button {
-            margin-top: 20px;
-            padding: 10px 20px;
-            font-size: 16px;
+        .modal h2 { margin-top: 0; font-size: 1.8rem; }
+        .modal p { font-size: 1.1rem; color: #d7dadc; margin: 20px 0; }
+        .modal button {
+            background: var(--correct);
             border: none;
-            border-radius: 6px;
-            background-color: var(--correct-bg);
-            color: #000;
+            padding: 12px 24px;
+            color: white;
+            border-radius: 8px;
             font-weight: bold;
+            font-size: 1rem;
             cursor: pointer;
+            width: 100%;
         }
     </style>
 </head>
 <body>
 
-    <h1>오늘의 단어</h1>
+    <header>오늘의 단어</header>
 
-    <div id="board"></div>
+    <div id="game-container">
+        <div id="board"></div>
+    </div>
 
     <div id="keyboard">
         <div class="keyboard-row">
@@ -154,7 +196,7 @@
             <button class="key" data-key="ㅛ">ㅛ</button>
             <button class="key" data-key="ㅕ">ㅕ</button>
             <button class="key" data-key="ㅑ">ㅑ</button>
-            <button class="key wide" data-key="BACKSPACE">←</button>
+            <button class="key large" data-key="BACK">삭제</button>
         </div>
         <div class="keyboard-row">
             <button class="key" data-key="ㅁ">ㅁ</button>
@@ -176,186 +218,211 @@
             <button class="key" data-key="ㅜ">ㅜ</button>
             <button class="key" data-key="ㅡ">ㅡ</button>
         </div>
-        <button class="key enter" data-key="ENTER">글자를 입력하세요</button>
     </div>
 
-    <div id="modal">
-        <div class="modal-content">
+    <button id="submit-btn">글자를 입력하세요</button>
+
+    <div id="modal-overlay">
+        <div class="modal">
             <h2 id="modal-title">결과</h2>
-            <p id="modal-message"></p>
-            <button onclick="resetGame()">다시 시작하기</button>
+            <p id="modal-msg"></p>
+            <button onclick="resetGame()">다시 도전하기</button>
         </div>
     </div>
 
     <script>
-        // 사전 데이터 (자모 5개로 이루어진 단어들)
-        const dictionary = [
-            "ㄱㅏㅁㅈㅏ", "ㅅㅏㄹㅏㅁ", "ㅎㅏㄴㅡㄹ", "ㅇㅜㅅㅏㄴ", "ㅁㅏㅇㅡㅁ",
-            "ㄱㅏㅈㅗㄱ", "ㅊㅣㄴㄱㅜ", "ㅇㅓㅁㅁㅏ", "ㅎㅏㄱㄱㅛ", "ㄴㅏㅁㅈㅏ",
-            "ㄹㅏㅁㅕㄴ", "ㅂㅏㄹㅏㅁ", "ㅅㅣㄱㄱㅜ", "ㄴㅐㅁㅂㅣ", "ㄴㅏㅁㅜ"
+        // 정답 후보군 (자모 5개 조합)
+        const TARGET_LIST = [
+            "ㅂㅜㅇㅓㅋ", "ㅇㅣㅎㅗㄴ", "ㄱㅣㅈㅓㄱ", "ㄱㄱㅜㅓㅇ", "ㅅㅏㄹㅏㅁ", 
+            "ㅎㅏㄴㅡㄹ", "ㅇㅜㅅㅏㄴ", "ㅁㅏㅇㅡㅁ", "ㄱㅏㅈㅗㄱ", "ㅊㅣㄴㄱㅜ", 
+            "ㅇㅓㅁㅁㅏ", "ㅎㅏㄱㄱㅛ", "ㄴㅏㅁㅈㅏ", "ㄹㅏㅁㅕㄴ", "ㅂㅏㄹㅏㅁ",
+            "ㄴㅐㅁㅂㅣ", "ㅅㅣㄱㄱㅜ", "ㅎㅏㄱㄱㅣ", "ㄱㅏㅁㅈㅏ", "ㄴㅏㅁㅜㅇ"
         ];
-
-        const MAX_ATTEMPTS = 5;
-        const WORD_LENGTH = 5;
+        
+        // 정답 공개 시 보여줄 이름
+        const NAME_MAP = {
+            "ㅂㅜㅇㅓㅋ": "부엌", "ㅇㅣㅎㅗㄴ": "이혼", "ㄱㅣㅈㅓㄱ": "기적", "ㄱㄱㅜㅓㅇ": "꿩",
+            "ㅅㅏㄹㅏㅁ": "사람", "ㅎㅏㄴㅡㄹ": "하늘", "ㅇㅜㅅㅏㄴ": "우산", "ㅁㅏㅇㅡㅁ": "마음",
+            "ㄱㅏㅈㅗㄱ": "가족", "ㅊㅣㄴㄱㅜ": "친구", "ㅇㅓㅁㅁㅏ": "엄마", "ㅎㅏㄱㄱㅛ": "학교",
+            "ㄴㅏㅁㅈㅏ": "남자", "ㄹㅏㅁㅕㄴ": "라면", "ㅂㅏㄹㅏㅁ": "바람", "ㄴㅐㅁㅂㅣ": "냄비",
+            "ㅅㅣㄱㄱㅜ": "식구", "ㅎㅏㄱㄱㅣ": "학기", "ㄱㅏㅁㅈㅏ": "감자", "ㄴㅏㅁㅜㅇ": "나무"
+        };
 
         let targetWord = "";
-        let currentAttempt = 0;
-        let currentTile = 0;
-        let guesses = Array(MAX_ATTEMPTS).fill().map(() => Array(WORD_LENGTH).fill(""));
+        let currentGuess = "";
+        let attempts = [];
+        let gameOver = false;
 
-        // 게임 초기화 함수
+        const boardEl = document.getElementById('board');
+        const submitBtn = document.getElementById('submit-btn');
+
         function initGame() {
-            targetWord = dictionary[Math.floor(Math.random() * dictionary.length)];
-            currentAttempt = 0;
-            currentTile = 0;
-            guesses = Array(MAX_ATTEMPTS).fill().map(() => Array(WORD_LENGTH).fill(""));
+            gameOver = false;
+            attempts = [];
+            currentGuess = "";
+            targetWord = TARGET_LIST[Math.floor(Math.random() * TARGET_LIST.length)];
             
-            drawBoard();
-            resetKeyboardColors();
-            document.getElementById("modal").style.display = "none";
-        }
-
-        // 보드 그리기
-        function drawBoard() {
-            const board = document.getElementById("board");
-            board.innerHTML = "";
-            for (let r = 0; r < MAX_ATTEMPTS; r++) {
-                const row = document.createElement("div");
-                row.className = "row";
-                for (let c = 0; c < WORD_LENGTH; c++) {
-                    const tile = document.createElement("div");
-                    tile.className = "tile";
-                    tile.id = `tile-${r}-${c}`;
+            // 보드 초기화
+            boardEl.innerHTML = '';
+            for (let i = 0; i < 5; i++) {
+                const row = document.createElement('div');
+                row.className = 'row';
+                for (let j = 0; j < 5; j++) {
+                    const tile = document.createElement('div');
+                    tile.className = 'tile';
+                    tile.id = `tile-${i}-${j}`;
                     row.appendChild(tile);
                 }
-                board.appendChild(row);
+                boardEl.appendChild(row);
             }
-        }
-
-        // 보드 업데이트
-        function updateBoard() {
-            for (let r = 0; r < MAX_ATTEMPTS; r++) {
-                for (let c = 0; c < WORD_LENGTH; c++) {
-                    const tile = document.getElementById(`tile-${r}-${c}`);
-                    tile.textContent = guesses[r][c];
-                }
-            }
-        }
-
-        // 키보드 이벤트 연결
-        document.querySelectorAll(".key").forEach(button => {
-            button.addEventListener("click", () => {
-                handleInput(button.dataset.key);
+            
+            // 키보드 초기화
+            document.querySelectorAll('.key').forEach(k => {
+                k.removeAttribute('data-state');
+                k.style.color = "white";
             });
-        });
+            submitBtn.textContent = "글자를 입력하세요";
+            submitBtn.classList.remove('ready');
+            document.getElementById('modal-overlay').style.display = 'none';
+        }
 
-        // 입력 처리 로직
-        function handleInput(key) {
-            if (key === "BACKSPACE") {
-                if (currentTile > 0) {
-                    currentTile--;
-                    guesses[currentAttempt][currentTile] = "";
+        function updateBoard() {
+            const rowIdx = attempts.length;
+            const rowTiles = document.querySelectorAll('.row')[rowIdx].children;
+            
+            for (let i = 0; i < 5; i++) {
+                const tile = rowTiles[i];
+                if (currentGuess[i]) {
+                    tile.textContent = currentGuess[i];
+                    tile.classList.add('populated');
+                } else {
+                    tile.textContent = "";
+                    tile.classList.remove('populated');
                 }
-            } else if (key === "ENTER") {
-                checkGuess();
+            }
+
+            if (currentGuess.length === 5) {
+                submitBtn.textContent = "제출하기 (Enter)";
+                submitBtn.classList.add('ready');
             } else {
-                if (currentTile < WORD_LENGTH) {
-                    guesses[currentAttempt][currentTile] = key;
-                    currentTile++;
-                }
+                submitBtn.textContent = "글자를 입력하세요";
+                submitBtn.classList.remove('ready');
+            }
+        }
+
+        function handleKey(key) {
+            if (gameOver) return;
+
+            if (key === 'BACK') {
+                currentGuess = currentGuess.slice(0, -1);
+            } else if (currentGuess.length < 5) {
+                currentGuess += key;
             }
             updateBoard();
         }
 
-        // 정답 확인 로직
-        function checkGuess() {
-            if (currentTile !== WORD_LENGTH) {
-                alert("다섯 글자를 모두 입력해주세요.");
-                return;
-            }
+        function submitGuess() {
+            if (currentGuess.length < 5 || gameOver) return;
 
-            const currentGuess = guesses[currentAttempt].join("");
+            // 유효성 검사 제거: 어떤 조합이든 제출 가능
 
-            const targetArray = targetWord.split("");
-            const guessArray = guesses[currentAttempt];
-            let tileColors = Array(WORD_LENGTH).fill("var(--absent-bg)");
-            let targetJamoCounts = {};
+            const rowIdx = attempts.length;
+            const rowTiles = document.querySelectorAll('.row')[rowIdx].children;
+            const targetArr = targetWord.split('');
+            const guessArr = currentGuess.split('');
+            const states = Array(5).fill('absent');
+            
+            const targetCounter = {};
+            targetArr.forEach(l => targetCounter[l] = (targetCounter[l] || 0) + 1);
 
-            // 정답의 자모 개수 카운트
-            for (let jamo of targetArray) {
-                targetJamoCounts[jamo] = (targetJamoCounts[jamo] || 0) + 1;
-            }
-
-            // 1차 패스: 정확한 위치 (초록색)
-            for (let i = 0; i < WORD_LENGTH; i++) {
-                if (guessArray[i] === targetArray[i]) {
-                    tileColors[i] = "var(--correct-bg)";
-                    targetJamoCounts[guessArray[i]]--;
-                }
-            }
-
-            // 2차 패스: 잘못된 위치 (주황/노란색)
-            for (let i = 0; i < WORD_LENGTH; i++) {
-                if (tileColors[i] === "var(--absent-bg)" && targetJamoCounts[guessArray[i]] > 0) {
-                    tileColors[i] = "var(--present-bg)";
-                    targetJamoCounts[guessArray[i]]--;
-                }
-            }
-
-            // UI 색상 업데이트 (타일 및 키보드)
-            for (let i = 0; i < WORD_LENGTH; i++) {
-                const tile = document.getElementById(`tile-${currentAttempt}-${i}`);
-                tile.style.backgroundColor = tileColors[i];
-                tile.style.borderColor = tileColors[i];
-                if (tileColors[i] !== "var(--present-bg)") tile.style.color = "#000";
-
-                updateKeyboardColor(guessArray[i], tileColors[i]);
-            }
-
-            // 게임 종료 조건 확인
-            if (currentGuess === targetWord) {
-                setTimeout(() => showModal("성공!", "정답을 맞췄습니다!"), 300);
-            } else if (currentAttempt === MAX_ATTEMPTS - 1) {
-                setTimeout(() => showModal("실패...", `정답은 '${targetWord}' 였습니다.`), 300);
-            } else {
-                currentAttempt++;
-                currentTile = 0;
-            }
-        }
-
-        // 키보드 색상 업데이트
-        function updateKeyboardColor(key, color) {
-            const keyButton = document.querySelector(`.key[data-key="${key}"]`);
-            if (!keyButton) return;
-
-            const currentColor = keyButton.style.backgroundColor;
-            // 이미 초록색인 키는 덮어쓰지 않음
-            if (currentColor !== "var(--correct-bg)") {
-                keyButton.style.backgroundColor = color;
-                keyButton.style.color = "#000";
-            }
-        }
-
-        function resetKeyboardColors() {
-            document.querySelectorAll(".key").forEach(button => {
-                if(button.dataset.key !== "ENTER") {
-                    button.style.backgroundColor = "var(--key-bg)";
-                    button.style.color = "var(--key-text)";
+            // 1차: 위치까지 맞을 때 (초록)
+            guessArr.forEach((letter, i) => {
+                if (letter === targetArr[i]) {
+                    states[i] = 'correct';
+                    targetCounter[letter]--;
                 }
             });
+
+            // 2차: 포함만 되어 있을 때 (주황)
+            guessArr.forEach((letter, i) => {
+                if (states[i] === 'absent' && targetCounter[letter] > 0) {
+                    states[i] = 'present';
+                    targetCounter[letter]--;
+                }
+            });
+
+            // UI 적용
+            states.forEach((state, i) => {
+                setTimeout(() => {
+                    const tile = rowTiles[i];
+                    tile.setAttribute('data-state', state);
+                    updateKeyUI(guessArr[i], state);
+                }, i * 150);
+            });
+
+            attempts.push(currentGuess);
+            
+            if (currentGuess === targetWord) {
+                gameOver = true;
+                setTimeout(() => showResult(true), 1000);
+            } else if (attempts.length === 5) {
+                gameOver = true;
+                setTimeout(() => showResult(false), 1000);
+            } else {
+                currentGuess = "";
+                setTimeout(() => {
+                    submitBtn.textContent = "글자를 입력하세요";
+                    submitBtn.classList.remove('ready');
+                }, 800);
+            }
         }
 
-        function showModal(title, message) {
-            document.getElementById("modal-title").innerText = title;
-            document.getElementById("modal-message").innerText = message;
-            document.getElementById("modal").style.display = "flex";
+        function updateKeyUI(letter, state) {
+            const keyEl = document.querySelector(`.key[data-key="${letter}"]`);
+            if (!keyEl) return;
+            
+            const currentState = keyEl.getAttribute('data-state');
+            if (currentState === 'correct') return;
+            if (currentState === 'present' && state === 'absent') return;
+            
+            keyEl.setAttribute('data-state', state);
+        }
+
+        function showResult(isWin) {
+            const overlay = document.getElementById('modal-overlay');
+            const title = document.getElementById('modal-title');
+            const msg = document.getElementById('modal-msg');
+            
+            overlay.style.display = 'flex';
+            if (isWin) {
+                title.textContent = "축하합니다!";
+                msg.textContent = `정답 '${NAME_MAP[targetWord]}'을(를) 맞췄습니다!`;
+            } else {
+                title.textContent = "아쉬워요...";
+                msg.textContent = `정답은 '${NAME_MAP[targetWord]}' 였습니다.`;
+            }
         }
 
         function resetGame() {
             initGame();
         }
 
-        // 최초 실행
+        // 입력 리스너
+        document.querySelectorAll('.key').forEach(key => {
+            key.addEventListener('click', () => handleKey(key.dataset.key));
+        });
+
+        submitBtn.addEventListener('click', submitGuess);
+        
+        // 실제 키보드 입력 대응
+        window.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter') submitGuess();
+            if (e.key === 'Backspace') handleKey('BACK');
+            const k = e.key;
+            const validKeys = "ㄱㄴㄷㄹㅁㅂㅅㅇㅈㅊㅋㅌㅍㅎㅏㅑㅓㅕㅗㅛㅜㅠㅡㅣ";
+            if (validKeys.includes(k)) handleKey(k);
+        });
+
         initGame();
     </script>
 </body>
